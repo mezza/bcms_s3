@@ -41,3 +41,24 @@ If you've set up CNAMES in your DNS to point to your bucket, then you can enable
 3. This module requires the RightAWS gem from RightScale (sudo gem install right_aws)
 
 ##### Based on original work on S3 storage for BrowserCMS by [Neil Middleton](http://github.com/neilmiddleton/)
+
+## Important note for use with Rails 3 and BCMS 3.1.x-axes
+
+Due to the use of Engines, I can't work out how to extend the Cms::AttachmentsController and Models from within the module, so you will need to add the block below in the initializer for browsercms.rb
+
+    Cms::AttachmentsController.send(:include, Cms::S3::AttachmentsController)
+    Cms::ContentController.send(:include, Cms::S3::ContentController)
+    Attachment.send(:include, Cms::S3::Attachment)
+    Cms::ApplicationController.send(:include, Cms::S3::ApplicationController)
+    # ensure S3 storage disabled by default
+    Cms::S3.enabled = false if Cms::S3.enabled.nil?
+    # ensure heroku caching disabled by default
+    Cms::S3.heroku_caching = false if Cms::S3.heroku_caching.nil?
+    # function to set domain prefix without url to 'www' is disabled by default
+    Cms::S3.www_domain_prefix = false if Cms::S3.www_domain_prefix.nil?
+    # load s3 options if s3.yml exists
+    if File.exists?("#{RAILS_ROOT}/config/s3.yml")
+      yaml_string = IO.read("#{RAILS_ROOT}/config/s3.yml")
+      Cms::S3.options =  YAML::load(ERB.new(yaml_string).result)
+      Cms::S3.options.symbolize_keys!
+    end
